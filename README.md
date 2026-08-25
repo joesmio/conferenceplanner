@@ -4,9 +4,9 @@ Static companion for the [TechWorks Semiconductors to Systems Summit](https://te
 
 Four conferences run in parallel. This site lets anyone — or a named group of colleagues — pick **one event per time block**, then keep a personal Wednesday plan.
 
-**Site URL (after Pages is enabled):** [https://joesmio.github.io/conferenceplanner/](https://joesmio.github.io/conferenceplanner/)
+**Live site:** [https://joesmio.github.io/conferenceplanner/](https://joesmio.github.io/conferenceplanner/)
 
-GitHub Pages is not on yet. This agent cannot flip that repo setting. In the GitHub UI: **Settings → Pages → Deploy from a branch → `main` (or `cursor/s2s26-conference-planner-b32a`) / root → Save**.
+GitHub Pages is publishing from this repo as a project site under `joesmio.github.io`.
 
 ## What you can do
 
