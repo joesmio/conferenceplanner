@@ -1,0 +1,9 @@
+{
+  "name": "s2s26-conference-planner",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test planner.test.js",
+    "start": "python3 -m http.server 4173"
+  }
+}
