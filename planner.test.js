@@ -119,6 +119,15 @@ test("the last remaining person cannot be removed", () => {
   assert.equal(next.people.length, 1);
 });
 
+test("new plans default to dark theme", () => {
+  assert.equal(normalizeState(null).theme, "dark");
+  assert.equal(normalizeState({ people: [{ id: "p1", name: "Joe", picks: {}, stars: [] }] }).theme, "dark");
+  assert.equal(normalizeState({
+    people: [{ id: "p1", name: "Joe", picks: {}, stars: [] }],
+    theme: "light",
+  }).theme, "light");
+});
+
 test("empty default state does not count as a persistable plan", () => {
   assert.equal(hasPlanContent(normalizeState(null)), false);
 });

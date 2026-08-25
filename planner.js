@@ -1,4 +1,4 @@
-const STORAGE_KEY = "s2s26-planner-v1";
+const STORAGE_KEY = "s2s26-planner-v2";
 const PLAN_VERSION = 1;
 
 export function newId() {
@@ -17,7 +17,7 @@ export function defaultState() {
     people: [emptyPerson("You")],
     activePersonId: null,
     view: "grid",
-    theme: "light",
+    theme: "dark",
   };
 }
 
@@ -39,7 +39,7 @@ export function normalizeState(raw) {
     ? raw.activePersonId
     : people[0].id;
   const view = ["grid", "day", "compare", "info"].includes(raw.view) ? raw.view : "grid";
-  const theme = raw.theme === "dark" ? "dark" : "light";
+  const theme = raw.theme === "light" ? "light" : "dark";
   return { people, activePersonId, view, theme };
 }
 

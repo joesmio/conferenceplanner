@@ -70,6 +70,8 @@ function person() {
 function render() {
   document.documentElement.dataset.theme = state.theme;
   document.body.dataset.view = state.view;
+  const themeColor = document.querySelector('meta[name="theme-color"]');
+  if (themeColor) themeColor.setAttribute("content", state.theme === "light" ? "#f3eee4" : "#07090f");
   root.innerHTML = `
     ${renderHeader()}
     <main>
