@@ -7,9 +7,13 @@ import {
   choiceProgress,
   compareRows,
   daySummaryText,
+  applyPlanToUrl,
   decodePlan,
   emptyPerson,
   encodePlan,
+  exportPlanFile,
+  hasPlanContent,
+  importPlanFile,
   escapeIcs,
   itinerary,
   normalizeState,
@@ -113,6 +117,42 @@ test("the last remaining person cannot be removed", () => {
   const state = normalizeState(null);
   const next = removePerson(state, state.people[0].id);
   assert.equal(next.people.length, 1);
+});
+
+test("empty default state does not count as a persistable plan", () => {
+  assert.equal(hasPlanContent(normalizeState(null)), false);
+});
+
+test("a pick or extra person makes the plan persistable", () => {
+  let state = normalizeState(null);
+  assert.equal(hasPlanContent(state), false);
+  state = setPick(state, state.people[0].id, "am1", "am1-build");
+  assert.equal(hasPlanContent(state), true);
+  state = normalizeState(null);
+  state = addPerson(state, "Colleague");
+  assert.equal(hasPlanContent(state), true);
+});
+
+test("plan files and URL tokens restore the same picks", () => {
+  let state = normalizeState(null);
+  state = renamePerson(state, state.people[0].id, "Joe");
+  state = setPick(state, state.people[0].id, "am1", "am1-create");
+  const file = exportPlanFile(state, new Date("2026-08-25T12:00:00Z"));
+  assert.equal(file.conferenceId, "s2s26");
+  const fromFile = importPlanFile(file);
+  assert.equal(fromFile.people[0].name, "Joe");
+  assert.equal(fromFile.people[0].picks.am1, "am1-create");
+  const fromText = importPlanFile(JSON.stringify(file));
+  assert.equal(fromText.people[0].picks.am1, "am1-create");
+  const fromToken = importPlanFile(encodePlan(state));
+  assert.equal(fromToken.people[0].picks.am1, "am1-create");
+});
+
+test("URL helper writes and clears the plan query", () => {
+  const href = "https://joesmio.github.io/conferenceplanner/";
+  const withPlan = applyPlanToUrl(href, "abc");
+  assert.equal(withPlan, "/conferenceplanner/?plan=abc");
+  assert.equal(applyPlanToUrl(`${href}?plan=abc`, ""), "/conferenceplanner/");
 });
 
 test("Sheffield and CHIMES talks are flagged in Build", () => {

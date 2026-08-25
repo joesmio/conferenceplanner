@@ -6,17 +6,21 @@ import {
   choiceProgress,
   compareRows,
   daySummaryText,
+  applyPlanToUrl,
   decodePlan,
   encodePlan,
+  exportPlanFile,
   formatRange,
+  hasPlanContent,
+  importPlanFile,
   itinerary,
   loadState,
   normalizeState,
+  planTokenFromLocation,
   removePerson,
   renamePerson,
   saveState,
   sessionForTrackSlot,
-  sessionsForSlot,
   setPick,
   talkKey,
   toggleStar,
@@ -31,19 +35,26 @@ if (errors.length) {
 }
 
 let state = loadState();
-const imported = decodePlan(new URLSearchParams(location.search).get("plan") || location.hash.replace(/^#plan=/, ""));
+const imported = decodePlan(planTokenFromLocation(location.search, location.hash))
+  || importPlanFile(planTokenFromLocation(location.search, location.hash));
 if (imported) {
   state = {
     ...state,
     people: imported.people,
     activePersonId: imported.activePersonId,
   };
-  history.replaceState({}, "", location.pathname);
-  persist();
+}
+
+function planHref() {
+  const token = hasPlanContent(state) ? encodePlan(state) : "";
+  return `${location.origin}${applyPlanToUrl(location.href, token)}`;
 }
 
 function persist() {
   saveState(state);
+  const next = applyPlanToUrl(location.href, hasPlanContent(state) ? encodePlan(state) : "");
+  const current = `${location.pathname}${location.search}${location.hash}`;
+  if (next !== current) history.replaceState({}, "", next);
 }
 
 function setState(next) {
@@ -96,6 +107,17 @@ function renderHeader() {
         <button type="button" class="ghost" data-action="add-person">Add person</button>
         ${state.people.length > 1 ? `<button type="button" class="ghost danger" data-action="remove-person">Remove</button>` : ""}
         <p class="progress" aria-live="polite">${progress.filled} of ${progress.total} parallel blocks chosen</p>
+      </div>
+      <div class="persist-bar">
+        <p>${hasPlanContent(state)
+          ? "This plan lives in the page address. Bookmark it, text it to yourself, or open it on another phone or laptop."
+          : "Picks stay in this browser, and also in the page address once you choose a track — that link is what you take to a new browser."}</p>
+        <div class="actions">
+          <button type="button" class="solid" data-action="share" ${hasPlanContent(state) ? "" : "disabled"}>Copy plan link</button>
+          <button type="button" class="ghost" data-action="save-file" ${hasPlanContent(state) ? "" : "disabled"}>Save plan file</button>
+          <button type="button" class="ghost" data-action="load-file">Load plan file</button>
+          <input id="plan-file" type="file" accept="application/json,.json" hidden>
+        </div>
       </div>
       <nav class="tabs" aria-label="Views">
         ${tabButton("grid", "All tracks")}
@@ -201,7 +223,7 @@ function renderDay() {
           <button type="button" class="solid" data-action="ics">Add to calendar</button>
           <button type="button" class="ghost" data-action="copy-day">Copy text</button>
           <button type="button" class="ghost" data-action="print">Print</button>
-          <button type="button" class="ghost" data-action="share">Share link</button>
+          <button type="button" class="ghost" data-action="share">Copy plan link</button>
         </div>
       </div>
       <ol class="day-list">
@@ -276,7 +298,7 @@ function renderCompare() {
         </div>
         <div class="actions">
           <button type="button" class="ghost" data-action="add-person">Add person</button>
-          <button type="button" class="ghost" data-action="share">Share everyone’s plans</button>
+          <button type="button" class="ghost" data-action="share">Copy everyone’s plan link</button>
         </div>
       </div>
       <div class="table-wrap">
@@ -355,7 +377,7 @@ function renderInfo() {
 function renderFooter() {
   return `
     <footer class="site-footer">
-      <p>Unofficial companion planner for ${CONFERENCE.name}. Plans stay in this browser unless you share a link.</p>
+      <p>Unofficial companion planner for ${CONFERENCE.name}. A new browser starts empty unless you open your plan link or load a saved file.</p>
       <button type="button" class="ghost" data-action="theme">${state.theme === "dark" ? "Light theme" : "Dark theme"}</button>
     </footer>
   `;
@@ -387,6 +409,15 @@ function bind() {
   root.querySelectorAll("[data-action]").forEach((button) => {
     button.addEventListener("click", () => handleAction(button.dataset.action));
   });
+
+  const fileInput = root.querySelector("#plan-file");
+  if (fileInput) {
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files?.[0];
+      fileInput.value = "";
+      if (file) readPlanFile(file);
+    });
+  }
 }
 
 function handleAction(action) {
@@ -425,8 +456,43 @@ function handleAction(action) {
     return;
   }
   if (action === "share") {
-    const url = `${location.origin}${location.pathname}?plan=${encodePlan(state)}`;
-    copyText(url);
+    if (!hasPlanContent(state)) {
+      toast("Choose a track first");
+      return;
+    }
+    copyText(planHref());
+    return;
+  }
+  if (action === "save-file") {
+    if (!hasPlanContent(state)) {
+      toast("Choose a track first");
+      return;
+    }
+    const blob = new Blob([`${JSON.stringify(exportPlanFile(state), null, 2)}\n`], { type: "application/json" });
+    download(blob, `${CONFERENCE.shortName}-plan.json`);
+    return;
+  }
+  if (action === "load-file") {
+    root.querySelector("#plan-file")?.click();
+  }
+}
+
+async function readPlanFile(file) {
+  try {
+    const importedPlan = importPlanFile(await file.text());
+    if (!importedPlan) {
+      toast("That file is not a recognised S2S26 plan");
+      return;
+    }
+    if (hasPlanContent(state) && !window.confirm("Replace the plan in this browser with the file?")) return;
+    setState({
+      ...state,
+      people: importedPlan.people,
+      activePersonId: importedPlan.activePersonId,
+    });
+    toast("Plan loaded");
+  } catch {
+    toast("Could not read that file");
   }
 }
 
@@ -475,4 +541,5 @@ window.__plannerTest = {
   setState,
 };
 
+persist();
 render();

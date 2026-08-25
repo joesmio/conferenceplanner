@@ -16,7 +16,7 @@ GitHub Pages is publishing from this repo as a project site under `joesmio.githu
 - Star talks you do not want to miss
 - Export an `.ics` calendar, copy a text programme, print, or share a link
 
-Plans are stored in the browser. A share link encodes the same picks so someone else can open them.
+Picks are stored in this browser **and** written into the page address as you choose tracks. Bookmark or copy **Copy plan link** to open the same plan on a phone or another laptop. **Save plan file** / **Load plan file** is a backup if you do not want to keep the long URL.
 
 Agenda, rooms and speakers come from the official [S2S26 agenda](https://techworks.org.uk/s2s26-agenda/) and joining instructions. Talks inside a 90-minute block do not have published start times, so the planner treats each parallel block as the choice point.
 

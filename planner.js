@@ -223,6 +223,76 @@ export function compareRows(conference, people) {
   });
 }
 
+export function hasPlanContent(state) {
+  return state.people.some((person, index) => (
+    index > 0
+    || person.name !== "You"
+    || Object.keys(person.picks).length > 0
+    || person.stars.length > 0
+  ));
+}
+
+export function planTokenFromLocation(search = "", hash = "") {
+  const fromQuery = new URLSearchParams(search.startsWith("?") || search === "" ? search : `?${search}`).get("plan");
+  if (fromQuery) return fromQuery;
+  const match = String(hash || "").match(/^#plan=(.*)$/);
+  return match ? match[1] : "";
+}
+
+export function applyPlanToUrl(href, token, base = "https://joesmio.github.io") {
+  const url = new URL(href, base);
+  if (token) url.searchParams.set("plan", token);
+  else url.searchParams.delete("plan");
+  url.hash = "";
+  return url.pathname + url.search + url.hash;
+}
+
+export function exportPlanFile(state, now = new Date()) {
+  return {
+    version: PLAN_VERSION,
+    conferenceId: "s2s26",
+    savedAt: now.toISOString(),
+    people: state.people.map((person) => ({
+      name: person.name,
+      picks: person.picks,
+      stars: person.stars,
+    })),
+  };
+}
+
+export function importPlanFile(raw) {
+  if (raw == null) return null;
+  if (typeof raw === "string") {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    if (!trimmed.startsWith("{")) return decodePlan(trimmed);
+    try {
+      return importPlanFile(JSON.parse(trimmed));
+    } catch {
+      return null;
+    }
+  }
+  if (typeof raw !== "object") return null;
+  if (Array.isArray(raw.people) && raw.people.length && ("n" in raw.people[0] || raw.v)) {
+    return decodePlan(encodePlan({
+      people: raw.people.map((item, index) => ({
+        id: `import-${index}`,
+        name: item.n || item.name || `Person ${index + 1}`,
+        picks: item.p || item.picks || {},
+        stars: item.s || item.stars || [],
+      })),
+    }));
+  }
+  if (!Array.isArray(raw.people) || !raw.people.length) return null;
+  const people = raw.people.map((item, index) => ({
+    id: newId(),
+    name: typeof item.name === "string" && item.name.trim() ? item.name.trim() : `Person ${index + 1}`,
+    picks: item.picks && typeof item.picks === "object" ? item.picks : {},
+    stars: Array.isArray(item.stars) ? item.stars.filter((value) => typeof value === "string") : [],
+  }));
+  return { people, activePersonId: people[0].id };
+}
+
 export function encodePlan(state) {
   const payload = {
     v: PLAN_VERSION,
